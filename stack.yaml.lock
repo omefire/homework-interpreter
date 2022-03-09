@@ -3,7 +3,18 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    name: Stack
+    version: 0.4.0
+    git: https://gitlab.com/rwlock/Stack.git
+    pantry-tree:
+      size: 467
+      sha256: 7778c2d4189325dd424dee1a4a79bc1efe7db4f6cb1fc8bd5b3042b822e33f0f
+    commit: 74c1eb37eea045439a520dbb5f90a354ffeb45eb
+  original:
+    git: https://gitlab.com/rwlock/Stack.git
+    commit: 74c1eb37eea045439a520dbb5f90a354ffeb45eb
 snapshots:
 - completed:
     size: 590102
