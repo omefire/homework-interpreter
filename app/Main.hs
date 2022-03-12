@@ -4,6 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Main where
 
@@ -77,7 +78,7 @@ runByteCodeInstructionInstruction interpreterState req = run $ execState interpr
                             
             put (st, map')
             return ()
-        go (ReadVariable var) = do -- let result@(resultingStack, resultingMap) = runByteCode [LoadValue 1, WriteVariable "x", ReadVariable "x", LoadValue 1, Add, ReadVariable "y", Mul]
+        go (ReadVariable var) = do
             (st, map) <- get
             let v = case (Map.lookup var map) of
                         Nothing -> error $ "Error (ReadVariable instruction): no such variable: " <> var
@@ -85,56 +86,23 @@ runByteCodeInstructionInstruction interpreterState req = run $ execState interpr
             let st' = stackPush st v
             put (st' :: Stack Int, map :: Map.Map String Int)
             return ()
-        go (Add) = do
+        go (Add) = binaryOp Add (+)
+        go (Sub) = binaryOp Sub (-)
+        go (Div) = binaryOp Div (Prelude.div)
+        go (Mul) = binaryOp Mul (*)
+        
+        binaryOp :: ByteCodeInstruction v -> (forall a. Integral a => a -> a -> a) -> Eff '[Error (), State InterpreterState] ()
+        binaryOp instruction op = do
             (st, map) <- get
-            -- when (stackSize st < 2) error "Error (Add instruction): Less than 2 elements in the stack"
             let (stack1, stack2, val1, val2) = case (stackPop st) of
-                                Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
+                                Nothing -> error "Error (Add/Sub/Mul/Div instruction): Less than 2 elements in the stack"
                                 Just (st1, v1) -> case (stackPop st1) of
-                                                    Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
+                                                    Nothing -> error "Error (Add/Sub/Mul/Div instruction): Less than 2 elements in the stack"
                                                     Just (st2, v2) -> (st1, st2, v1, v2)
-            let result = val1 + val2
+            let result = val1 `op` val2
             let stack3 = stackPush stack2 result
             put (stack3 :: Stack Int, map :: Map.Map String Int)
-            return ()
-
-        -- TODO: Refactor this so that we don't have duplicated code between this and the handler for the Add operation
-        go (Sub) = do
-            (st, map) <- get
-            -- when (stackSize st < 2) error "Error (Add instruction): Less than 2 elements in the stack"
-            let (stack1, stack2, val1, val2) = case (stackPop st) of
-                                Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
-                                Just (st1, v1) -> case (stackPop st1) of
-                                                    Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
-                                                    Just (st2, v2) -> (st1, st2, v1, v2)
-            let result = val1 - val2
-            let stack3 = stackPush stack2 result
-            put (stack3 :: Stack Int, map :: Map.Map String Int)
-            return ()
-        go (Div) = do
-            (st, map) <- get
-            -- when (stackSize st < 2) error "Error (Add instruction): Less than 2 elements in the stack"
-            let (stack1, stack2, val1, val2) = case (stackPop st) of
-                                Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
-                                Just (st1, v1) -> case (stackPop st1) of
-                                                    Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
-                                                    Just (st2, v2) -> (st1, st2, v1, v2)
-            let result = val1 `Prelude.div` val2
-            let stack3 = stackPush stack2 result
-            put (stack3 :: Stack Int, map :: Map.Map String Int)
-            return ()
-        go (Mul) = do
-            (st, map) <- get
-            -- when (stackSize st < 2) error "Error (Add instruction): Less than 2 elements in the stack"
-            let (stack1, stack2, val1, val2) = case (stackPop st) of
-                                Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
-                                Just (st1, v1) -> case (stackPop st1) of
-                                                    Nothing -> error "Error (Add instruction): Less than 2 elements in the stack"
-                                                    Just (st2, v2) -> (st1, st2, v1, v2)
-            let result = val1 * val2
-            let stack3 = stackPush stack2 result
-            put (stack3 :: Stack Int, map :: Map.Map String Int)
-            return ()    
+            return ()         
 
 
 runByteCode :: ByteCode a -> InterpreterState
