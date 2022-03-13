@@ -29,7 +29,10 @@ data ByteCodeInstruction r where
     Sub :: ByteCodeInstruction ()
     Div :: ByteCodeInstruction ()
     Mul :: ByteCodeInstruction ()
+
+    -- TODO:
     {-For :: ByteCodeInstruction r -> ByteCodeInstruction Bool -> ByteCodeInstruction r -> ByteCodeInstruction r -> ByteCodeInstruction ()-}
+
     {-ReturnValue :: ByteCodeInstruction ()-}
 makeEffect ''ByteCodeInstruction
 
@@ -69,6 +72,7 @@ runByteCodeInstruction interpreterState req = run $ execState interpreterState (
         go (Div) = binaryOp Div (Prelude.div)
         go (Mul) = binaryOp Mul (*)
 
+        -- TODO:
         {- stmt1 is executed once before the execution of the code block
            stmt2 defines the condition for executing the code block
            stmt3 is executed (every time) after the code block has been executed

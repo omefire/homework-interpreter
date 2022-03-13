@@ -2,6 +2,8 @@
 
 * Questions 1 and 2: look at the code in app/Main.hs
 
+* Question 2: To implement loops, we need to include 'boolean handling' as well, I've commented out the code for now.
+
 * Question 3, here goes:
 
 - SEND_CHANNEL: For this instruction, we would pop two elements from the stack, the first element popped being the channel and the second one being
