@@ -29,6 +29,7 @@ data ByteCodeInstruction r where
     Sub :: ByteCodeInstruction ()
     Div :: ByteCodeInstruction ()
     Mul :: ByteCodeInstruction ()
+    {-For :: ByteCodeInstruction r -> ByteCodeInstruction Bool -> ByteCodeInstruction r -> ByteCodeInstruction r -> ByteCodeInstruction ()-}
     {-ReturnValue :: ByteCodeInstruction ()-}
 makeEffect ''ByteCodeInstruction
 
@@ -36,37 +37,14 @@ type InterpreterState = (Stack Int, Map.Map String Int)
 
 type ByteCode a = [ByteCodeInstruction a]
 
-runByteCodeInstructionInstruction :: InterpreterState -> Eff '[ByteCodeInstruction] w -> InterpreterState
-runByteCodeInstructionInstruction interpreterState req = run $ execState interpreterState (runError (reinterpret2 go req))
+runByteCodeInstruction :: InterpreterState -> Eff '[ByteCodeInstruction] w -> InterpreterState
+runByteCodeInstruction interpreterState req = run $ execState interpreterState (runError (reinterpret2 go req))
     where
         go :: ByteCodeInstruction v -> Eff '[Error (), State InterpreterState] v
         go (LoadValue val) = do
             (st, map) <- get
             let st' = stackPush st val
-            put (st', map :: Map.Map String Int) -- This is to solve the previous error: -> /Users/omefire/Projects/homework-interpreter/app/Main.hs:40:26: error:
-{-
-    • Couldn't match type ‘(,) (Stack Int)’
-                     with ‘Eff '[Error (), State InterpreterState]’
-      Expected type: Eff
-                       '[Error (), State InterpreterState] (Map String Int)
-        Actual type: (Stack Int, Map String Int)
-    • In a stmt of a 'do' block:
-        (st, map) <- get :: (Stack Int, Map String Int)
-      In the expression:
-        do (st, map) <- get :: (Stack Int, Map String Int)
-           let st' = stackPush st val
-           put (st', map)
-           return ()
-      In an equation for ‘go’:
-          go (LoadValue val)
-            = do (st, map) <- get :: (Stack Int, Map String Int)
-                 let st' = ...
-                 put (st', map)
-                 ....
-   |
-40 |             (st, map) <- get :: (Stack Int, Map.Map String Int)
-   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
--}
+            put (st', map :: Map.Map String Int)
             return ()
         go (WriteVariable var) = do
             (st, map) <- get
@@ -90,7 +68,24 @@ runByteCodeInstructionInstruction interpreterState req = run $ execState interpr
         go (Sub) = binaryOp Sub (-)
         go (Div) = binaryOp Div (Prelude.div)
         go (Mul) = binaryOp Mul (*)
-        
+
+        {- stmt1 is executed once before the execution of the code block
+           stmt2 defines the condition for executing the code block
+           stmt3 is executed (every time) after the code block has been executed
+           stmt4 is the code block to be executed every time the condition is true -}
+        {-go (For stmt1 stmt2 stmt3 stmt4) = do
+            is@(st, map) <- get
+            let is' = runByteCodeInstruction is (send stmt1)
+            doWhile is' (send stmt2) (send stmt3) (send stmt4)
+            return ()
+
+        doWhile :: Eff '[ByteCodeInstruction] Bool -> Eff '[ByteCodeInstruction] w -> Eff '[ByteCodeInstruction] x -> State InterpreterState ()
+        doWhile stmt2 stmt3 stmt4 = do
+            is <- get
+            --is' <- loopM (\(st, map) -> stackPeek st) is
+            --put is'
+            return ()-}
+
         binaryOp :: ByteCodeInstruction v -> (forall a. Integral a => a -> a -> a) -> Eff '[Error (), State InterpreterState] ()
         binaryOp instruction op = do
             (st, map) <- get
@@ -102,13 +97,13 @@ runByteCodeInstructionInstruction interpreterState req = run $ execState interpr
             let result = val1 `op` val2
             let stack3 = stackPush stack2 result
             put (stack3 :: Stack Int, map :: Map.Map String Int)
-            return ()         
+            return ()        
 
 
 runByteCode :: ByteCode a -> InterpreterState
 runByteCode [] = (stackNew :: Stack Int, Map.empty)
 runByteCode byteCode@(x:xs) = let initialInterpreterState = (stackNew :: Stack Int, Map.empty)
-    in Prelude.foldl (\interpreterState byteCodeInstruction -> runByteCodeInstructionInstruction interpreterState (send byteCodeInstruction))
+    in Prelude.foldl (\interpreterState byteCodeInstruction -> runByteCodeInstruction interpreterState (send byteCodeInstruction))
              initialInterpreterState byteCode
 
 main :: IO ()
