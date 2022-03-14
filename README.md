@@ -100,7 +100,7 @@ Blockchain Questions (optional, only if you have previous blockchain experience)
 
 ** **Questions 1 and 2**: look at the code in app/Main.hs
 
-** **Question 2**: To implement loops, we need to include 'boolean handling' as well, I've commented out the code for now.
+** **Question 2**: To implement loops, we need to handle booleans, instead of just integers and basic arithmetics, it seems like that wasn't the intent of the exercise. So, I've commented out the code I started writing towards that goal for now. I can work on it if it turns out to be necessary.
 
 ** **Question 3**, here goes:
 
